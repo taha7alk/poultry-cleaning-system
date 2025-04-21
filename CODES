@@ -1,0 +1,79 @@
+#include <IRremote.h>
+
+// Define Pins
+#define FLOOR_MOTOR     4   // Relay for floor movement
+#define IR_RECEIVER     7   // IR remote receiver
+#define ULTRASONIC_TRIG 9   // Ultrasonic sensor trigger
+#define ULTRASONIC_ECHO 8   // Ultrasonic sensor echo
+#define BUZZER         11   // Buzzer for manure full alert
+#define WATER_PUMP      5   // Relay for water pump
+
+// IR Remote Key Codes (Customize with your remote values)
+#define IR_FLOOR_ON     0x1FEC13E
+#define IR_FLOOR_OFF    0x1FEE41B
+#define IR_PUMP_ON      0x1FEE11E
+#define IR_PUMP_OFF     0x1FE916E
+#define IR_COMBO_ON     0x1FE12ED
+#define IR_COMBO_OFF    0x1FE817E
+
+IRrecv irrecv(IR_RECEIVER);
+decode_results results;
+
+void setup() {
+    pinMode(FLOOR_MOTOR, OUTPUT);
+    pinMode(WATER_PUMP, OUTPUT);
+    pinMode(BUZZER, OUTPUT);
+    pinMode(ULTRASONIC_TRIG, OUTPUT);
+    pinMode(ULTRASONIC_ECHO, INPUT);
+
+    irrecv.enableIRIn(); // Start IR receiver
+
+    digitalWrite(FLOOR_MOTOR, HIGH); // Relay OFF
+    digitalWrite(WATER_PUMP, HIGH);  // Relay OFF
+}
+
+void loop() {
+    // Handle IR commands
+    if (irrecv.decode(&results)) {
+        switch (results.value) {
+            case IR_FLOOR_ON:
+                digitalWrite(FLOOR_MOTOR, LOW);
+                break;
+            case IR_FLOOR_OFF:
+                digitalWrite(FLOOR_MOTOR, HIGH);
+                break;
+            case IR_PUMP_ON:
+                digitalWrite(WATER_PUMP, LOW);
+                break;
+            case IR_PUMP_OFF:
+                digitalWrite(WATER_PUMP, HIGH);
+                break;
+            case IR_COMBO_ON:
+                digitalWrite(FLOOR_MOTOR, LOW);
+                digitalWrite(WATER_PUMP, LOW);
+                break;
+            case IR_COMBO_OFF:
+                digitalWrite(FLOOR_MOTOR, HIGH);
+                digitalWrite(WATER_PUMP, HIGH);
+                break;
+        }
+        irrecv.resume(); // Prepare for next IR signal
+    }
+
+    // Manure bin monitoring
+    if (getDistance() < 3) {
+        digitalWrite(BUZZER, HIGH);
+    } else {
+        digitalWrite(BUZZER, LOW);
+    }
+}
+
+// Measure distance using ultrasonic sensor
+long getDistance() {
+    digitalWrite(ULTRASONIC_TRIG, LOW);
+    delayMicroseconds(2);
+    digitalWrite(ULTRASONIC_TRIG, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(ULTRASONIC_TRIG, LOW);
+    return pulseIn(ULTRASONIC_ECHO, HIGH) * 0.034 / 2;
+}
